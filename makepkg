@@ -18,13 +18,15 @@ function printhelp
     echo "-e = no extract"
     echo "-O = rpm output location"
     echo "-p = no prepare()"
+    echo "-P = alternative PKGBUILD file"
     echo "-S = install makedepends with yum before building"
     echo "-U = cleanup makedepends with yum after building"
     echo "-v = no source verification (md5/sha)"
 }
 download_location=$(pwd)
+pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSacpbvD:O:" c;do
+while getopts "hcCUSacpbvD:O:P:" c;do
     case "$c" in
         h)
             printhelp
@@ -74,6 +76,9 @@ while getopts "hcCUSacpbvD:O:" c;do
         O)
             outdir=$(readlink -f $OPTARG)
             ;;
+        P)
+            pkgbuildfile=$(readlink -f $OPTARG)
+            ;;
 
         \?)
             echo "invalid option $c"
@@ -85,7 +90,7 @@ while getopts "hcCUSacpbvD:O:" c;do
     esac
 done
 
-if [[ ! -e PKGBUILD ]]; then
+if [[ ! -e $pkgbuildfile ]]; then
     echo no PKGBUILD found.
     exit 1
 fi
@@ -386,7 +391,7 @@ function createrpm()
     mv -v *.rpm ${outdir}/
 }
 
-. PKGBUILD
+. $pkgbuildfile
 
 if [[ -n "$installbefore" ]]; then
     yum_makedepends
