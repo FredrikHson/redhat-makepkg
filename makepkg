@@ -1,0 +1,434 @@
+#!/bin/bash
+
+
+pkgdir=$(readlink -f ./pkg)
+srcdir=$(readlink -f ./src)
+outdir=$(readlink -f .)
+
+
+function printhelp
+{
+    echo "valid options"
+    echo "-a = no archive (package())"
+    echo "-b = no build()"
+    echo "-c = Clean up work after build"
+    echo "-C = Remove $srcdir before building"
+    echo "-D = download location"
+    echo "-d = no download use existing source files"
+    echo "-e = no extract"
+    echo "-O = rpm output location"
+    echo "-p = no prepare()"
+    echo "-S = install makedepends with yum before building"
+    echo "-U = cleanup makedepends with yum after building"
+    echo "-v = no source verification (md5/sha)"
+}
+download_location=$(pwd)
+
+while getopts "hcCUSacpbvD:O:" c;do
+    case "$c" in
+        h)
+            printhelp
+            exit 0
+            ;;
+
+        c)
+            cleanupafter=1
+            ;;
+
+        C)
+            rm -rf $srcdir
+            ;;
+
+        S)
+            installbefore=1
+            ;;
+        U)
+            installcleanup=1
+            ;;
+
+        a)
+            noarchive=1
+            ;;
+
+        p)
+            noprepare=1
+            ;;
+
+        b)
+            nobuild=1
+            ;;
+        d)
+            nodownload=1
+            ;;
+        e)
+            noextract=1
+            ;;
+
+        v)
+            noverify=1
+            ;;
+        D)
+            download_location=$(readlink -f $OPTARG)
+            ;;
+
+        O)
+            outdir=$(readlink -f $OPTARG)
+            ;;
+
+        \?)
+            echo "invalid option $c"
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ ! -e PKGBUILD ]]; then
+    echo no PKGBUILD found.
+    exit 1
+fi
+
+function extract ()
+{
+    if [ -f $1 ] ; then
+        case $1 in
+            *.tar.bz2)
+                tar xjf $1
+                ;;
+            *.tar.gz)
+                tar xzf $1
+                ;;
+            *.tar.xz)
+                tar xf $1
+                ;;
+            *.tar.lz)
+                tar xf $1
+                ;;
+            *.bz2)
+                tar jxvf $1
+                ;;
+            *.rar)
+                unrar x $1
+                ;;
+            *.gz)
+                gunzip $1
+                ;;
+            *.tar)
+                tar xf $1
+                ;;
+            *.tbz2)
+                tar xjf $1
+                ;;
+            *.tgz)
+                tar xzf $1
+                ;;
+            *.zip)
+                unzip $1
+                ;;
+            *.jar)
+                unzip $1
+                ;;
+            *.7z)
+                7z x $1
+                ;;
+            *.tar.xz)
+                xz -d $1
+                ;;
+            *)
+                ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+function clean()
+{
+    rm -f *.rpm
+    rm -rf pkg
+}
+
+function getSourcePath()
+{
+    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g'
+}
+
+
+function getSourceName()
+{
+    if [[ $(echo $1 | grep ::) ]]; then
+        echo $1 | perl -pe 's/::.*//g'
+    else
+        basename $1
+    fi
+}
+
+function getSourceVCS() # none,http,git,svn
+{
+    if [[ $(echo $1 | grep 'git+https*://') ]]; then
+        echo git
+        return
+    fi
+    if [[ $(echo $1 | grep 'svn+https*://') ]]; then
+        echo svn
+        return
+    fi
+    if [[ $(echo $1 | grep 'https*://') ]]; then
+        echo http
+        return
+    fi
+    if [[ $(echo $1 | grep 'ftps*://') ]]; then
+        echo http
+        return
+    fi
+
+    echo none
+}
+
+function downloadsources()
+{
+    if [[ -n "$download_location" ]]; then
+        mkdir -p $download_location
+        cd $download_location
+    fi
+
+    mkdir -p $srcdir
+
+    for src in "${source[@]}"; do
+        src_name=$(getSourceName "$src")
+        src_path=$(getSourcePath "$src")
+        vcs=$(getSourceVCS "$src")
+
+        if [[ "$vcs" == "http" ]]; then
+            if [[ ! -e "$src_name" ]]; then
+                wget -nc $src_path -O $src_name
+            fi
+            pushd $srcdir
+            ln -sf "$download_location/$src_name" $src_name
+            popd
+        fi
+        if [[ "$vcs" == "git" ]]; then
+            if [[ ! -e "$src_name" ]]; then
+                git clone --bare $src_path $src_name
+            fi
+            pushd $srcdir
+            git clone --recursive "$download_location/$src_name" $src_name
+            popd
+        fi
+        if [[ "$vcs" == "svn" ]]; then
+            if [[ ! -e "$src_name" ]]; then
+                svn checkout $src_path $src_name
+            fi
+            pushd $srcdir
+            cp -r "$download_location/$src_name" $src_name
+            popd
+        fi
+        if [[ "$vcs" == "none" ]]; then
+            pushd $srcdir
+            ln -sf "$download_location/$src_name" $src_name
+            popd
+        fi
+    done
+}
+
+function extractsources()
+{
+    mkdir -p $srcdir
+    cd $srcdir
+
+    for src in "${source[@]}"; do
+        src_name=$(getSourceName "$src")
+        vcs=$(getSourceVCS "$src")
+        if [[ "$vcs" != "git" && "$vcs" != "svn" ]]; then
+            extract $src_name
+        fi
+    done
+}
+
+function verifysources()
+{
+    cd $srcdir
+    numberofsources=${#source[@]}
+    for (( i = 0; i < $numberofsources; i++ )); do
+        src_name=$(getSourceName "${source[i]}")
+        if [[ -n "$md5sums" ]]; then
+            if [[ "${md5sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            md5sum -c <(echo "${md5sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed md5 check
+                exit 1
+            fi
+        fi
+        if [[ -n "$sha256sums" ]]; then
+            if [[ "${sha256sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            sha256sum -c <(echo "${sha256sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed sha256 check
+                exit 1
+            fi
+        fi
+        if [[ -n "$sha1sums" ]]; then
+            if [[ "${sha1sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            sha1sum -c <(echo "${sha1sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed sha1 check
+                exit 1
+            fi
+        fi
+        if [[ -n "$sha224sums" ]]; then
+            if [[ "${sha224sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            sha224sum -c <(echo "${sha224sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed sha224 check
+                exit 1
+            fi
+        fi
+        if [[ -n "$sha384sums" ]]; then
+            if [[ "${sha384sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            sha384sum -c <(echo "${sha384sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed sha384 check
+                exit 1
+            fi
+        fi
+        if [[ -n "$sha512sums" ]]; then
+            if [[ "${sha512sums[i]}" == "SKIP" ]]; then
+                continue
+            fi
+            sha512sum -c <(echo "${sha512sums[i]}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo $src_name failed sha512 check
+                exit 1
+            fi
+        fi
+    done
+}
+
+yum_cleanuplist=""
+
+function yum_makedepends()
+{
+    installedlist=$(rpm -qa --queryformat "%{NAME}\n")
+    for dep in ${makedepends[@]}; do
+        exists=$(echo "$installedlist" | grep "^$dep$")
+        if [[ -z "$exists" ]]; then
+            echo $dep needs to be installed
+            yum_cleanuplist=$(echo $yum_cleanuplist $dep)
+        fi
+    done
+    if [[ -n "$yum_cleanuplist" ]]; then
+        sudo yum install -y $yum_cleanuplist
+    fi
+}
+
+function yum_cleanup()
+{
+    if [[ -n "$yum_cleanuplist" ]]; then
+        sudo yum remove -y $yum_cleanuplist
+    fi
+}
+
+function createrpm()
+{
+    #setup ruby for fpm#setup ruby for fpm
+    if [[ "$(uname -m)" != "x86_64" ]]; then
+        . $HOME/.rvm/scripts/rvm
+        rvm 2.3.0
+    fi
+    cd ${pkgdir}
+    echo ${depends[@]}
+    fpmflags=""
+    for dep in ${depends[@]}; do
+        fpmflags=$(echo "$fpmflags --depends $dep")
+    done
+
+    for conflict in ${conflicts[@]}; do
+        fpmflags=$(echo "$fpmflags --conflicts $conflict")
+    done
+
+    if [[ -n "$license" ]]; then
+        fpmflags=$(echo "$fpmflags --license $license")
+    fi
+    if [[ -n "$url" ]]; then
+        fpmflags=$(echo "$fpmflags --url $url")
+    fi
+    if [[ -n "$description" ]]; then
+        fpmflags=$(echo "$fpmflags --description $pkgdesc")
+    fi
+    fpm -s dir -t rpm -n $pkgname -v "${pkgver}" \
+        --iteration $pkgrel \
+        --provides $pkgname \
+        $fpmflags \
+        *
+    if [[ ! -d "${outdir}" ]]; then
+        mkdir -p ${outdir}
+    fi
+    mv -v *.rpm ${outdir}/
+}
+
+. PKGBUILD
+
+if [[ -n "$installbefore" ]]; then
+    yum_makedepends
+fi
+
+if [[ -z "$nodownload" ]]; then
+    echo downloading
+    downloadsources
+fi
+if [[ -z "$noverify" ]]; then
+    echo verifying sources
+    verifysources
+fi
+if [[ -z "$noextract" ]]; then
+    echo extracting
+    extractsources
+fi
+
+if [[ "$(type -t pkgver)" == "function" ]]; then
+    pkgver=$(pkgver)
+fi
+
+if [[ -z "$noprepare" ]]; then
+    if [[ "$(type -t prepare)" == "function" ]]; then
+        prepare
+    fi
+fi
+
+if [[ -z "$nobuild" ]]; then
+    if [[ "$(type -t build)" == "function" ]]; then
+        build
+    fi
+fi
+
+if [[ -z "$noarchive" ]]; then
+    if [[ "$(type -t package)" == "function" ]]; then
+        rm -rf $pkgdir
+        package
+        createrpm
+    else
+        echo missing package function.
+        exit 1
+    fi
+fi
+
+if [[ -n "$cleanupafter" ]]; then
+    rm -rf $srcdir
+    rm -rf $pkgdir
+fi
+
+if [[ -n "$installcleanup" ]]; then
+    yum_cleanup
+fi
