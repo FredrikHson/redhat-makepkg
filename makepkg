@@ -348,7 +348,7 @@ function yum_cleanup()
 function createrpm()
 {
     ruby_version=$(ruby --version | perl -pe 's/ruby\s([0-9]).*/\1/g')
-    if [[ $ruby_version -le 2 ]]; then
+    if [[ "$ruby_version" -lt "2" ]]; then
         echo needs newer ruby
         if [[ -e "$HOME/.rvm/scripts/rvm" ]]; then
             echo using rvm to get ruby 2.3.0
@@ -369,6 +369,9 @@ function createrpm()
 
     for conflict in ${conflicts[@]}; do
         fpmflags=$(echo "$fpmflags --conflicts $conflict")
+    done
+    for provide in ${provides[@]}; do
+        fpmflags=$(echo "$fpmflags --provides $provide")
     done
 
     if [[ -n "$license" ]]; then
@@ -405,6 +408,7 @@ if [[ -z "$noverify" ]]; then
     echo verifying sources
     verifysources
 fi
+set -e
 if [[ -z "$noextract" ]]; then
     echo extracting
     extractsources
@@ -436,6 +440,7 @@ if [[ -z "$noarchive" ]]; then
         exit 1
     fi
 fi
+set +e
 
 if [[ -n "$cleanupafter" ]]; then
     rm -rf $srcdir
