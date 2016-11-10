@@ -420,18 +420,21 @@ fi
 
 if [[ -z "$noprepare" ]]; then
     if [[ "$(type -t prepare)" == "function" ]]; then
+        cd $srcdir
         prepare
     fi
 fi
 
 if [[ -z "$nobuild" ]]; then
     if [[ "$(type -t build)" == "function" ]]; then
+        cd $srcdir
         build
     fi
 fi
 
 if [[ -z "$noarchive" ]]; then
     if [[ "$(type -t package)" == "function" ]]; then
+        cd $srcdir
         rm -rf $pkgdir
         package
         createrpm
