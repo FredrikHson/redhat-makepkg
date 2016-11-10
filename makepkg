@@ -351,10 +351,10 @@ function createrpm()
     if [[ "$ruby_version" -lt "2" ]]; then
         echo needs newer ruby
         if [[ -e "$HOME/.rvm/scripts/rvm" ]]; then
-            echo using rvm to get ruby 2.3.0
+            echo using rvm to get ruby 2.3
             #setup ruby for fpm
             . $HOME/.rvm/scripts/rvm
-            rvm 2.3.0
+            rvm 2.3
         else
             echo could not get a new enough ruby version to run fpm on update ruby or install rvm.
             exit 1
