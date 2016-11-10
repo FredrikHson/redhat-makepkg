@@ -26,7 +26,7 @@ function printhelp
 download_location=$(pwd)
 pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:";do
+while getopts "hcCUSapbdevD:O:P:" c;do
     case "$c" in
         h)
             printhelp
