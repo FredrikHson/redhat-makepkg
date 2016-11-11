@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-pkgdir=$(readlink -f ./pkg)
-srcdir=$(readlink -f ./src)
-outdir=$(readlink -f .)
+pkgdir=$(readlink -m -f ./pkg)
+srcdir=$(readlink -m -f ./src)
+outdir=$(readlink -m -f .)
 
 
 function printhelp
@@ -70,14 +70,14 @@ while getopts "hcCUSapbdevD:O:P:" c;do
             noverify=1
             ;;
         D)
-            download_location=$(readlink -f $OPTARG)
+            download_location=$(readlink -m -f $OPTARG)
             ;;
 
         O)
-            outdir=$(readlink -f $OPTARG)
+            outdir=$(readlink -m -f $OPTARG)
             ;;
         P)
-            pkgbuildfile=$(readlink -f $OPTARG)
+            pkgbuildfile=$(readlink -m -f $OPTARG)
             ;;
 
         \?)
@@ -436,6 +436,7 @@ if [[ -z "$noarchive" ]]; then
     if [[ "$(type -t package)" == "function" ]]; then
         cd $srcdir
         rm -rf $pkgdir
+        mkdir -p $pkgdir
         package
         createrpm
     else
