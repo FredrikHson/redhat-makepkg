@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-pkgdir=$(readlink -m -f ./pkg)
-srcdir=$(readlink -m -f ./src)
-outdir=$(readlink -m -f .)
+pkgdir=$(readlink -f -m ./pkg)
+srcdir=$(readlink -f -m ./src)
+outdir=$(readlink -f -m .)
 
 
 function printhelp
@@ -70,14 +70,14 @@ while getopts "hcCUSapbdevD:O:P:" c;do
             noverify=1
             ;;
         D)
-            download_location=$(readlink -m -f $OPTARG)
+            download_location=$(readlink -f -m $OPTARG)
             ;;
 
         O)
-            outdir=$(readlink -m -f $OPTARG)
+            outdir=$(readlink -f -m $OPTARG)
             ;;
         P)
-            pkgbuildfile=$(readlink -m -f $OPTARG)
+            pkgbuildfile=$(readlink -f -m $OPTARG)
             ;;
 
         \?)
