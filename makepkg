@@ -22,11 +22,12 @@ function printhelp
     echo "-S = install makedepends with yum before building"
     echo "-U = cleanup makedepends with yum after building"
     echo "-v = no source verification (md5/sha)"
+    echo "-r = just print the rpm output name"
 }
 download_location=$(pwd)
 pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:" c;do
+while getopts "hcCUSapbdevD:O:P:r" c;do
     case "$c" in
         h)
             printhelp
@@ -68,6 +69,9 @@ while getopts "hcCUSapbdevD:O:P:" c;do
 
         v)
             noverify=1
+            ;;
+        r)
+            printrpmname=1
             ;;
         D)
             download_location=$(readlink -f -m $OPTARG)
@@ -395,6 +399,11 @@ function createrpm()
 }
 
 . $pkgbuildfile
+
+if [[ -n "$printrpmname" ]]; then
+    echo ${pkgname}-${pkgver}-${pkgrel}.$(arch).rpm
+    exit 0
+fi
 
 if [[ -n "$installbefore" ]]; then
     yum_makedepends
