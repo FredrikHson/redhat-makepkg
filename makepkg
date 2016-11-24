@@ -374,6 +374,11 @@ function createrpm()
     for conflict in ${conflicts[@]}; do
         fpmflags=$(echo "$fpmflags --conflicts $conflict")
     done
+
+    for replace in ${replaces[@]}; do
+        fpmflags=$(echo "$fpmflags --replaces $replace")
+    done
+
     for provide in ${provides[@]}; do
         fpmflags=$(echo "$fpmflags --provides $provide")
     done
