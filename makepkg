@@ -402,11 +402,13 @@ function createrpm()
     fi
     mv -v *.rpm ${outdir}/
 }
+#setup the architecture flag
+CARCH=$(arch)
 
 . $pkgbuildfile
 
 if [[ -n "$printrpmname" ]]; then
-    echo ${pkgname}-${pkgver}-${pkgrel}.$(arch).rpm
+    echo ${pkgname}-${pkgver}-${pkgrel}.${CARCH}.rpm
     exit 0
 fi
 
