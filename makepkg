@@ -23,11 +23,12 @@ function printhelp
     echo "-U = cleanup makedepends with yum after building"
     echo "-v = no source verification (md5/sha)"
     echo "-r = just print the rpm output name"
+    echo "-m = just print the makedepends list"
 }
 download_location=$(pwd)
 pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:r" c;do
+while getopts "hcCUSapbdevD:O:P:rm" c;do
     case "$c" in
         h)
             printhelp
@@ -72,6 +73,9 @@ while getopts "hcCUSapbdevD:O:P:r" c;do
             ;;
         r)
             printrpmname=1
+            ;;
+        m)
+            printmakedeps=1
             ;;
         D)
             download_location=$(readlink -f -m $OPTARG)
@@ -409,6 +413,13 @@ CARCH=$(arch)
 
 if [[ -n "$printrpmname" ]]; then
     echo ${pkgname}-${pkgver}-${pkgrel}.${CARCH}.rpm
+    exit 0
+fi
+
+if [[ -n "$printmakedeps" ]]; then
+    for i in ${makedepends[@]}; do
+        echo $i
+    done
     exit 0
 fi
 
