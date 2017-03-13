@@ -225,6 +225,9 @@ function downloadsources()
         if [[ "$vcs" == "git" ]]; then
             if [[ ! -e "$src_name" ]]; then
                 git clone --bare $src_path $src_name
+            else
+                git --git-dir=$src_name fetch origin +refs/tags/*:refs/tags/* --prune
+                git --git-dir=$src_name fetch origin +refs/heads/*:refs/heads/* --prune
             fi
             pushd $srcdir
             git clone --recursive "$download_location/$src_name" $src_name
