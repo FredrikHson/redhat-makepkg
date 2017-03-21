@@ -358,6 +358,7 @@ function yum_cleanup()
 
 function createrpm()
 {
+    local name=${1}
     ruby_version=$(ruby --version | perl -pe 's/ruby\s([0-9]).*/\1/g')
     if [[ "$ruby_version" -lt "2" ]]; then
         echo needs newer ruby
@@ -399,9 +400,9 @@ function createrpm()
     if [[ -n "$description" ]]; then
         fpmflags=$(echo "$fpmflags --description $pkgdesc")
     fi
-    fpm -s dir -t rpm -n $pkgname -v "${pkgver}" \
+    fpm -s dir -t rpm -n $name -v "${pkgver}" \
         --iteration $pkgrel \
-        --provides $pkgname \
+        --provides $name \
         $fpmflags \
         *
     if [[ ! -d "${outdir}" ]]; then
@@ -415,7 +416,9 @@ CARCH=$(arch)
 . $pkgbuildfile
 
 if [[ -n "$printrpmname" ]]; then
-    echo ${pkgname}-${pkgver}-${pkgrel}.${CARCH}.rpm
+    for name in ${pkgname[@]}; do
+        echo ${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
+    done
     exit 0
 fi
 
@@ -463,15 +466,32 @@ if [[ -z "$nobuild" ]]; then
 fi
 
 if [[ -z "$noarchive" ]]; then
-    if [[ "$(type -t package)" == "function" ]]; then
-        cd $srcdir
-        rm -rf $pkgdir
-        mkdir -p $pkgdir
-        package
-        createrpm
+    if [[ ${#pkgname[@]} -eq 1 ]]; then
+        if [[ "$(type -t package)" == "function" ]]; then
+            cd $srcdir
+            rm -rf $pkgdir
+            mkdir -p $pkgdir
+            package
+            createrpm $pkgname
+        else
+            echo missing package function.
+            exit 1
+        fi
     else
-        echo missing package function.
-        exit 1
+        orig_pkgdir=$pkgdir
+        for name in ${pkgname[@]}; do
+        if [[ "$(type -t package_${name})" == "function" ]]; then
+            pkgdir=${orig_pkgdir}/${name}
+            rm -rf $pkgdir
+            mkdir -p $pkgdir
+            package_${name}
+            createrpm ${name}
+        else
+            echo missing package function.
+            exit 1
+        fi
+
+        done
     fi
 fi
 set +e
