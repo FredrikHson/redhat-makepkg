@@ -24,11 +24,12 @@ function printhelp
     echo "-v = no source verification (md5/sha)"
     echo "-r = just print the rpm output name"
     echo "-m = just print the makedepends list"
+    echo "-n = output package name prefix"
 }
 download_location=$(pwd)
 pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:rm" c;do
+while getopts "hcCUSapbdevD:O:P:rmn:" c;do
     case "$c" in
         h)
             printhelp
@@ -76,6 +77,9 @@ while getopts "hcCUSapbdevD:O:P:rm" c;do
             ;;
         m)
             printmakedeps=1
+            ;;
+        n)
+            nameprefix=$OPTARG
             ;;
         D)
             download_location=$(readlink -f -m $OPTARG)
@@ -400,9 +404,9 @@ function createrpm()
     if [[ -n "$description" ]]; then
         fpmflags=$(echo "$fpmflags --description $pkgdesc")
     fi
-    fpm -s dir -t rpm -n $name -v "${pkgver}" \
+    fpm -s dir -t rpm -n ${nameprefix}$name -v "${pkgver}" \
         --iteration $pkgrel \
-        --provides $name \
+        --provides ${nameprefix}$name \
         $fpmflags \
         *
     if [[ ! -d "${outdir}" ]]; then
@@ -417,7 +421,7 @@ CARCH=$(arch)
 
 if [[ -n "$printrpmname" ]]; then
     for name in ${pkgname[@]}; do
-        echo ${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
+        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
     done
     exit 0
 fi
