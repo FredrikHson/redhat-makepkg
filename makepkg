@@ -169,7 +169,7 @@ function clean()
 
 function getSourcePath()
 {
-    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g'
+    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/\#.*$//g'
 }
 
 
@@ -178,13 +178,22 @@ function getSourceName()
     if [[ $(echo $1 | grep ::) ]]; then
         echo $1 | perl -pe 's/::.*//g'
     else
-        basename $1
+        basename $1 | perl -pe 's/\#.*$//g' | perl -pe 's/\.git$//'
     fi
+}
+
+function getSourceFragment()
+{
+    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
 }
 
 function getSourceVCS() # none,http,git,svn
 {
     if [[ $(echo $1 | grep 'git+https*://') ]]; then
+        echo git
+        return
+    fi
+    if [[ $(echo $1 | grep 'git://') ]]; then
         echo git
         return
     fi
@@ -216,6 +225,7 @@ function downloadsources()
     for src in "${source[@]}"; do
         src_name=$(getSourceName "$src")
         src_path=$(getSourcePath "$src")
+        src_fragment=$(getSourceFragment "$src")
         vcs=$(getSourceVCS "$src")
 
         if [[ "$vcs" == "http" ]]; then
@@ -235,6 +245,11 @@ function downloadsources()
             fi
             pushd $srcdir
             git clone --recursive "$download_location/$src_name" $src_name
+            if [[ -n "${src_fragment}" ]]; then
+                pushd $src_name
+                git checkout $(echo ${src_fragment} | perl -pe "s/.*=//")
+                popd
+            fi
             popd
         fi
         if [[ "$vcs" == "svn" ]]; then
