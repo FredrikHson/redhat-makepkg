@@ -414,10 +414,61 @@ function createrpm()
     fi
     mv -v *.rpm ${outdir}/
 }
+function concat_sources()
+{
+    #handle different sources for x86_64 and i686
+    if [[ "${CARCH}" == "x86_64" ]]; then
+        if [[ -n ${source_x86_64} ]]; then
+            source=("${source[@]}" "${source_x86_64[@]}")
+            if [[ -n "$md5sums" ]]; then
+                md5sums=("${md5sums[@]}" "${md5sums_x86_64[@]}")
+            fi
+            if [[ -n "$sha256sums" ]]; then
+                sha256sums=("${sha256sums[@]}" "${sha256sums_x86_64[@]}")
+            fi
+            if [[ -n "$sha1sums" ]]; then
+                sha1sums=("${sha1sums[@]}" "${sha1sums_x86_64[@]}")
+            fi
+            if [[ -n "$sha224sums" ]]; then
+                sha224sums=("${sha224sums[@]}" "${sha224sums_x86_64[@]}")
+            fi
+            if [[ -n "$sha384sums" ]]; then
+                sha384sums=("${sha384sums[@]}" "${sha384sums_x86_64[@]}")
+            fi
+            if [[ -n "$sha512sums" ]]; then
+                sha512sums=("${sha512sums[@]}" "${sha512sums_x86_64[@]}")
+            fi
+        fi
+    else
+        if [[ -n ${source_i686} ]]; then
+            source=("${source[@]}" "${source_i686[@]}")
+            if [[ -n "$md5sums" ]]; then
+                md5sums=("${md5sums[@]}" "${md5sums_i686[@]}")
+            fi
+            if [[ -n "$sha256sums" ]]; then
+                sha256sums=("${sha256sums[@]}" "${sha256sums_i686[@]}")
+            fi
+            if [[ -n "$sha1sums" ]]; then
+                sha1sums=("${sha1sums[@]}" "${sha1sums_i686[@]}")
+            fi
+            if [[ -n "$sha224sums" ]]; then
+                sha224sums=("${sha224sums[@]}" "${sha224sums_i686[@]}")
+            fi
+            if [[ -n "$sha384sums" ]]; then
+                sha384sums=("${sha384sums[@]}" "${sha384sums_i686[@]}")
+            fi
+            if [[ -n "$sha512sums" ]]; then
+                sha512sums=("${sha512sums[@]}" "${sha512sums_i686[@]}")
+            fi
+        fi
+    fi
+}
 #setup the architecture flag
 CARCH=$(arch)
 
 . $pkgbuildfile
+
+concat_sources
 
 if [[ -n "$printrpmname" ]]; then
     for name in ${pkgname[@]}; do
@@ -484,16 +535,16 @@ if [[ -z "$noarchive" ]]; then
     else
         orig_pkgdir=$pkgdir
         for name in ${pkgname[@]}; do
-        if [[ "$(type -t package_${name})" == "function" ]]; then
-            pkgdir=${orig_pkgdir}/${name}
-            rm -rf $pkgdir
-            mkdir -p $pkgdir
-            package_${name}
-            createrpm ${name}
-        else
-            echo missing package_${name} function.
-            exit 1
-        fi
+            if [[ "$(type -t package_${name})" == "function" ]]; then
+                pkgdir=${orig_pkgdir}/${name}
+                rm -rf $pkgdir
+                mkdir -p $pkgdir
+                package_${name}
+                createrpm ${name}
+            else
+                echo missing package_${name} function.
+                exit 1
+            fi
 
         done
     fi
