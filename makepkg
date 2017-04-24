@@ -184,7 +184,7 @@ function getSourceName()
 
 function getSourceFragment()
 {
-    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
+    echo $1 | grep '#' | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
 }
 
 function getSourceVCS() # none,http,git,svn
