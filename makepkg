@@ -244,6 +244,7 @@ function downloadsources()
                 git --git-dir=$src_name fetch origin +refs/heads/*:refs/heads/* --prune
             fi
             pushd $srcdir
+            rm -rf $src_name
             git clone --recursive "$download_location/$src_name" $src_name
             if [[ -n "${src_fragment}" ]]; then
                 pushd $src_name
@@ -502,7 +503,7 @@ fi
 if [[ -n "$installbefore" ]]; then
     yum_makedepends
 fi
-
+set -e
 if [[ -z "$nodownload" ]]; then
     echo downloading
     downloadsources
@@ -511,7 +512,7 @@ if [[ -z "$noverify" ]]; then
     echo verifying sources
     verifysources
 fi
-set -e
+
 if [[ -z "$noextract" ]]; then
     echo extracting
     extractsources
