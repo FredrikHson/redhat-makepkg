@@ -25,11 +25,12 @@ function printhelp
     echo "-r = just print the rpm output name"
     echo "-m = just print the makedepends list"
     echo "-n = output package name prefix"
+    echo "-w = fpm workdir sets where fpm puts its temporary files /tmp as default"
 }
 download_location=$(pwd)
 pkgbuildfile="PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:rmn:" c;do
+while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
     case "$c" in
         h)
             printhelp
@@ -87,6 +88,9 @@ while getopts "hcCUSapbdevD:O:P:rmn:" c;do
 
         O)
             outdir=$(readlink -f -m $OPTARG)
+            ;;
+        w)
+            workdir=$(readlink -f -m $OPTARG)
             ;;
         P)
             pkgbuildfile=$(readlink -f -m $OPTARG)
@@ -419,6 +423,9 @@ function createrpm()
     fi
     if [[ -n "$description" ]]; then
         fpmflags=$(echo "$fpmflags --description $pkgdesc")
+    fi
+    if [[ -n "$workdir" ]]; then
+        fpmflags=$(echo "$fpmflags --workdir $workdir")
     fi
     fpm -s dir -t rpm -n ${nameprefix}$name -v "${pkgver}" \
         --iteration $pkgrel \
