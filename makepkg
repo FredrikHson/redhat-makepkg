@@ -287,70 +287,106 @@ function extractsources()
     done
 }
 
+function verifygit()
+{
+    local src_name=$1
+    local sha=$2
+    local actualsha=$(git --git-dir=$src_name/.git rev-parse HEAD)
+    if [[ "$actualsha" != "$sha" ]]; then
+        echo $src_name tag/branch did not match $sha
+        exit 1
+    fi
+}
+
 function verifysources()
 {
     cd $srcdir
     numberofsources=${#source[@]}
     for (( i = 0; i < $numberofsources; i++ )); do
         src_name=$(getSourceName "${source[i]}")
+        vcs=$(getSourceVCS "$source[i]")
         if [[ -n "$md5sums" ]]; then
             if [[ "${md5sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            md5sum -c <(echo "${md5sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed md5 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${md5sums[i]}
+            else
+                md5sum -c <(echo "${md5sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed md5 check
+                    exit 1
+                fi
             fi
         fi
         if [[ -n "$sha256sums" ]]; then
             if [[ "${sha256sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            sha256sum -c <(echo "${sha256sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed sha256 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${sha256sums[i]}
+            else
+                sha256sum -c <(echo "${sha256sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed sha256 check
+                    exit 1
+                fi
             fi
         fi
         if [[ -n "$sha1sums" ]]; then
             if [[ "${sha1sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            sha1sum -c <(echo "${sha1sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed sha1 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${sha1sums[i]}
+            else
+                sha1sum -c <(echo "${sha1sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed sha1 check
+                    exit 1
+                fi
             fi
         fi
         if [[ -n "$sha224sums" ]]; then
             if [[ "${sha224sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            sha224sum -c <(echo "${sha224sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed sha224 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${sha224sums[i]}
+            else
+                sha224sum -c <(echo "${sha224sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed sha224 check
+                    exit 1
+                fi
             fi
         fi
         if [[ -n "$sha384sums" ]]; then
             if [[ "${sha384sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            sha384sum -c <(echo "${sha384sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed sha384 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${sha384sums[i]}
+            else
+                sha384sum -c <(echo "${sha384sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed sha384 check
+                    exit 1
+                fi
             fi
         fi
         if [[ -n "$sha512sums" ]]; then
             if [[ "${sha512sums[i]}" == "SKIP" ]]; then
                 continue
             fi
-            sha512sum -c <(echo "${sha512sums[i]}  $src_name") &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo $src_name failed sha512 check
-                exit 1
+            if [[ "$vcs" == "git" ]]; then
+                verifygit $src_name ${sha512sums[i]}
+            else
+                sha512sum -c <(echo "${sha512sums[i]}  $src_name") &>/dev/null
+                if [[ $? -ne 0 ]]; then
+                    echo $src_name failed sha512 check
+                    exit 1
+                fi
             fi
         fi
     done
