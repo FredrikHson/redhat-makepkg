@@ -267,7 +267,7 @@ function downloadsources()
         fi
         if [[ "$vcs" == "none" ]]; then
             pushd $srcdir
-            ln -sf "$download_location/$src_name" $src_name
+            cp "$(dirname $pkgbuildfile)/$src_name" $src_name
             popd
         fi
     done
