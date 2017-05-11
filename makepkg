@@ -522,12 +522,25 @@ function concat_sources()
         fi
     fi
 }
+function rpmname()
+{
+    for name in ${pkgname[@]}; do
+        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
+    done
+}
 #setup the architecture flag
 CARCH=$(arch)
 
 . $pkgbuildfile
 
 concat_sources
+if [[ "$(type -t pkgver)" != "function" ]]; then
+    if [[ -n "$printrpmname" ]]; then
+        rpmname
+        exit 0
+    fi
+
+fi
 
 if [[ -n "$printmakedeps" ]]; then
     for i in ${makedepends[@]}; do
@@ -541,17 +554,29 @@ if [[ -n "$installbefore" ]]; then
 fi
 set -e
 if [[ -z "$nodownload" ]]; then
-    echo downloading
-    downloadsources
+    if [[ -n "$printrpmname" ]]; then
+        downloadsources &> /dev/null
+    else
+        echo downloading
+        downloadsources
+    fi
 fi
 if [[ -z "$noverify" ]]; then
-    echo verifying sources
-    verifysources
+    if [[ -n "$printrpmname" ]]; then
+        verifysources &>/dev/null
+    else
+        echo verifying sources
+        verifysources
+    fi
 fi
 
 if [[ -z "$noextract" ]]; then
-    echo extracting
-    extractsources
+    if [[ -n "$printrpmname" ]]; then
+        extractsources &> /dev/null
+    else
+        echo extracting
+        extractsources
+    fi
 fi
 
 if [[ "$(type -t pkgver)" == "function" ]]; then
@@ -559,9 +584,7 @@ if [[ "$(type -t pkgver)" == "function" ]]; then
 fi
 
 if [[ -n "$printrpmname" ]]; then
-    for name in ${pkgname[@]}; do
-        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
-    done
+    rpmname
     exit 0
 fi
 
