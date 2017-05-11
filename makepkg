@@ -529,13 +529,6 @@ CARCH=$(arch)
 
 concat_sources
 
-if [[ -n "$printrpmname" ]]; then
-    for name in ${pkgname[@]}; do
-        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
-    done
-    exit 0
-fi
-
 if [[ -n "$printmakedeps" ]]; then
     for i in ${makedepends[@]}; do
         echo $i
@@ -563,6 +556,13 @@ fi
 
 if [[ "$(type -t pkgver)" == "function" ]]; then
     pkgver=$(pkgver)
+fi
+
+if [[ -n "$printrpmname" ]]; then
+    for name in ${pkgname[@]}; do
+        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
+    done
+    exit 0
 fi
 
 if [[ -z "$noprepare" ]]; then
