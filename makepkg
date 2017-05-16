@@ -249,7 +249,7 @@ function downloadsources()
             fi
             pushd $srcdir
             rm -rf $src_name
-            git clone --recursive "$download_location/$src_name" $src_name
+            git clone "$download_location/$src_name" $src_name
             if [[ -n "${src_fragment}" ]]; then
                 pushd $src_name
                 git checkout $(echo ${src_fragment} | perl -pe "s/.*=//")
