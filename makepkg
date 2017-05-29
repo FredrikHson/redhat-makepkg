@@ -293,7 +293,7 @@ function verifygit()
     local sha=$2
     local actualsha=$(git --git-dir=$src_name/.git rev-parse HEAD)
     if [[ "$actualsha" != "$sha" ]]; then
-        echo $src_name tag/branch did not match $sha
+        echo $src_name tag/branch did not match $sha >&2
         exit 1
     fi
 }
@@ -314,7 +314,7 @@ function verifysources()
             else
                 md5sum -c <(echo "${md5sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed md5 check
+                    echo $src_name failed md5 check >&2
                     exit 1
                 fi
             fi
@@ -328,7 +328,7 @@ function verifysources()
             else
                 sha256sum -c <(echo "${sha256sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha256 check
+                    echo $src_name failed sha256 check >&2
                     exit 1
                 fi
             fi
@@ -342,7 +342,7 @@ function verifysources()
             else
                 sha1sum -c <(echo "${sha1sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha1 check
+                    echo $src_name failed sha1 check >&2
                     exit 1
                 fi
             fi
@@ -356,7 +356,7 @@ function verifysources()
             else
                 sha224sum -c <(echo "${sha224sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha224 check
+                    echo $src_name failed sha224 check >&2
                     exit 1
                 fi
             fi
@@ -370,7 +370,7 @@ function verifysources()
             else
                 sha384sum -c <(echo "${sha384sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha384 check
+                    echo $src_name failed sha384 check >&2
                     exit 1
                 fi
             fi
@@ -384,7 +384,7 @@ function verifysources()
             else
                 sha512sum -c <(echo "${sha512sums[i]}  $src_name") &>/dev/null
                 if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha512 check
+                    echo $src_name failed sha512 check >&2
                     exit 1
                 fi
             fi
