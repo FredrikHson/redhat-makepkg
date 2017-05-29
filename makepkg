@@ -561,6 +561,7 @@ if [[ -z "$nodownload" ]]; then
         downloadsources
     fi
 fi
+set +e
 if [[ -z "$noverify" ]]; then
     if [[ -n "$printrpmname" ]]; then
         verifysources &>/dev/null
@@ -569,6 +570,7 @@ if [[ -z "$noverify" ]]; then
         verifysources
     fi
 fi
+set -e
 
 if [[ -z "$noextract" ]]; then
     if [[ -n "$printrpmname" ]]; then
