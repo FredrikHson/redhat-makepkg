@@ -28,7 +28,7 @@ function printhelp
     echo "-w = fpm workdir sets where fpm puts its temporary files /tmp as default"
 }
 download_location=$(pwd)
-pkgbuildfile="PKGBUILD"
+pkgbuildfile="$(pwd)/PKGBUILD"
 
 while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
     case "$c" in
@@ -304,7 +304,7 @@ function verifysources()
     numberofsources=${#source[@]}
     for (( i = 0; i < $numberofsources; i++ )); do
         src_name=$(getSourceName "${source[i]}")
-        vcs=$(getSourceVCS "$source[i]")
+        vcs=$(getSourceVCS "${source[i]}")
         if [[ -n "$md5sums" ]]; then
             if [[ "${md5sums[i]}" == "SKIP" ]]; then
                 continue
