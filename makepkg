@@ -267,7 +267,11 @@ function downloadsources()
         fi
         if [[ "$vcs" == "none" ]]; then
             pushd $srcdir
-            cp "$(dirname $pkgbuildfile)/$src_name" $src_name
+            if [ "${src_path:0:1}" = "/" ]; then
+                cp -v $src_path $src_name
+            else
+                cp -v "$(dirname $pkgbuildfile)/$src_name" $src_name
+            fi
             popd
         fi
     done
