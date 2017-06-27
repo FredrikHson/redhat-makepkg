@@ -467,11 +467,65 @@ function createrpm()
     if [[ -n "$workdir" ]]; then
         fpmflags=$(echo "$fpmflags --workdir $workdir")
     fi
+    post_installfile=$(mktemp -u)
+    pre_installfile=$(mktemp -u)
+    post_removefile=$(mktemp -u)
+    pre_removefile=$(mktemp -u)
+    post_upgradefile=$(mktemp -u)
+    pre_upgradefile=$(mktemp -u)
+    if [[ -n "$install" ]]; then
+        set +e
+        installfile=$(dirname $pkgbuildfile)/$install
+        echo "install script ${installfile}"
+        grep -q post_install ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${post_installfile}
+            echo post_install >> ${post_installfile}
+            fpmflags=$(echo "$fpmflags --after-install ${post_installfile}")
+        fi
+        grep -q pre_install ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${pre_installfile}
+            echo pre_install >> ${pre_installfile}
+            fpmflags=$(echo "$fpmflags --before-install ${pre_installfile}")
+        fi
+        grep -q post_remove ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${post_removefile}
+            echo post_remove >> ${post_removefile}
+            fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
+        fi
+        grep -q pre_remove ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${pre_removefile}
+            echo pre_remove >> ${pre_removefile}
+            fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
+        fi
+        grep -q post_upgrade ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${post_upgradefile}
+            echo post_upgrade >> ${post_upgradefile}
+            fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
+        fi
+        grep -q pre_upgrade ${installfile}
+        if [[ $? -eq 0 ]]; then
+            cp ${installfile} ${pre_upgradefile}
+            echo pre_upgrade >> ${pre_upgradefile}
+            fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
+        fi
+        set -e
+    fi
     fpm -s dir -t rpm -n ${nameprefix}$name -v "${pkgver}" \
         --iteration $pkgrel \
         --provides ${nameprefix}$name \
         $fpmflags \
         *
+    rm -f ${post_installfile}
+    rm -f ${pre_installfile}
+    rm -f ${post_removefile}
+    rm -f ${pre_removefile}
+    rm -f ${post_upgradefile}
+    rm -f ${pre_upgradefile}
     if [[ ! -d "${outdir}" ]]; then
         mkdir -p ${outdir}
     fi
