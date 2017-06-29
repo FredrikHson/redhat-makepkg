@@ -515,7 +515,8 @@ function createrpm()
         fi
         set -e
     fi
-    fpm -s dir -t rpm -n ${nameprefix}$name -v "${pkgver}" \
+    fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
+    fpm -s dir -t rpm -n ${nameprefix}$name -v "${fpmver}" \
         --iteration $pkgrel \
         --provides ${nameprefix}$name \
         $fpmflags \
@@ -582,8 +583,9 @@ function concat_sources()
 }
 function rpmname()
 {
+    fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
     for name in ${pkgname[@]}; do
-        echo ${nameprefix}${name}-${pkgver}-${pkgrel}.${CARCH}.rpm
+        echo ${nameprefix}${name}-${fpmver}-${pkgrel}.${CARCH}.rpm
     done
 }
 #setup the architecture flag
