@@ -67,7 +67,7 @@ while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
             nodownload=1
             ;;
         e)
-            noextract=1
+            donotextractanything=1
             ;;
 
         v)
@@ -113,6 +113,9 @@ fi
 
 function extract ()
 {
+    if [[ "${noextract[*]}" =~ "$1" ]];then
+        return
+    fi
     if [ -f $1 ] ; then
         case $1 in
             *.tar.bz2)
@@ -632,7 +635,7 @@ if [[ -z "$noverify" ]]; then
 fi
 set -e
 
-if [[ -z "$noextract" ]]; then
+if [[ -z "$donotextractanything" ]]; then
     if [[ -n "$printrpmname" ]]; then
         extractsources &> /dev/null
     else
