@@ -443,32 +443,32 @@ function createrpm()
     echo ${depends[@]}
     fpmflags=""
     for dep in ${depends[@]}; do
-        fpmflags=$(echo "$fpmflags --depends $dep")
+        fpmflags=$(echo "$fpmflags --depends \"$dep\"")
     done
 
     for conflict in ${conflicts[@]}; do
-        fpmflags=$(echo "$fpmflags --conflicts $conflict")
+        fpmflags=$(echo "$fpmflags --conflicts \"$conflict\"")
     done
 
     for replace in ${replaces[@]}; do
-        fpmflags=$(echo "$fpmflags --replaces $replace")
+        fpmflags=$(echo "$fpmflags --replaces \"$replace\"")
     done
 
     for provide in ${provides[@]}; do
-        fpmflags=$(echo "$fpmflags --provides $provide")
+        fpmflags=$(echo "$fpmflags --provides \"$provide\"")
     done
 
     if [[ -n "$license" ]]; then
-        fpmflags=$(echo "$fpmflags --license $license")
+        fpmflags=$(echo "$fpmflags --license \"${license}\"")
     fi
     if [[ -n "$url" ]]; then
-        fpmflags=$(echo "$fpmflags --url $url")
+        fpmflags=$(echo "$fpmflags --url \"$url\"")
     fi
-    if [[ -n "$description" ]]; then
-        fpmflags=$(echo "$fpmflags --description $pkgdesc")
+    if [[ -n "$pkgdesc" ]]; then
+        fpmflags=$(echo "$fpmflags --description \"$pkgdesc\"")
     fi
     if [[ -n "$workdir" ]]; then
-        fpmflags=$(echo "$fpmflags --workdir $workdir")
+        fpmflags=$(echo "$fpmflags --workdir \"$workdir\"")
     fi
     post_installfile=$(mktemp -u)
     pre_installfile=$(mktemp -u)
@@ -519,11 +519,11 @@ function createrpm()
         set -e
     fi
     fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
-    fpm -s dir -t rpm -n ${nameprefix}$name -v "${fpmver}" \
+    eval "fpm -s dir -t rpm -n ${nameprefix}$name -v "${fpmver}" \
         --iteration $pkgrel \
         --provides ${nameprefix}$name \
-        $fpmflags \
-        *
+        ${fpmflags} \
+        *"
     rm -f ${post_installfile}
     rm -f ${pre_installfile}
     rm -f ${post_removefile}
