@@ -200,6 +200,10 @@ function getSourceVCS() # none,http,git,svn
         echo git
         return
     fi
+    if [[ $(echo $1 | grep 'git+file*://') ]]; then
+        echo git
+        return
+    fi
     if [[ $(echo $1 | grep 'git://') ]]; then
         echo git
         return
