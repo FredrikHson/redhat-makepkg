@@ -1,5 +1,7 @@
 #!/bin/bash
 
+INSTALLER=${INSTALL_TOOL:-sudo yum install -y}
+UNINSTALLER=${UNINSTALL_TOOL:-sudo yum remove -y}
 
 pkgdir=$(readlink -f -m ./pkg)
 srcdir=$(readlink -f -m ./src)
@@ -19,8 +21,8 @@ function printhelp
     echo "-O = rpm output location"
     echo "-p = no prepare()"
     echo "-P = alternative PKGBUILD file"
-    echo "-S = install makedepends with yum before building"
-    echo "-U = cleanup makedepends with yum after building"
+    echo "-S = install makedepends with \$INSTALL_TOOL before building (${INSTALLER})"
+    echo "-U = cleanup makedepends with \$UNINSTALL_TOOL after building (${UNINSTALLER})"
     echo "-v = no source verification (md5/sha)"
     echo "-r = just print the rpm output name"
     echo "-m = just print the makedepends list"
@@ -403,7 +405,7 @@ function verifysources()
     done
 }
 
-yum_cleanuplist=""
+install_cleanuplist=""
 
 function yum_makedepends()
 {
@@ -412,18 +414,18 @@ function yum_makedepends()
         exists=$(echo "$installedlist" | grep "^$dep$")
         if [[ -z "$exists" ]]; then
             echo $dep needs to be installed
-            yum_cleanuplist=$(echo $yum_cleanuplist $dep)
+            install_cleanuplist=$(echo $install_cleanuplist $dep)
         fi
     done
-    if [[ -n "$yum_cleanuplist" ]]; then
-        sudo yum install -y $yum_cleanuplist
+    if [[ -n "$install_cleanuplist" ]]; then
+        $INSTALLER $install_cleanuplist
     fi
 }
 
 function yum_cleanup()
 {
-    if [[ -n "$yum_cleanuplist" ]]; then
-        sudo yum remove -y $yum_cleanuplist
+    if [[ -n "$install_cleanuplist" ]]; then
+        $UNINSTALLER $install_cleanuplist
     fi
 }
 
