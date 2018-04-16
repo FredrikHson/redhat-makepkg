@@ -590,7 +590,7 @@ function run_func()
     restoreshopt=$(shopt -p)
     restoreoshopt=$(shopt -o -p)
     restoretrap=$(trap -p ERR)
-    trap "echo ${RED}==\> ERROR:${NORMAL}${BOLD} A failure occurred in ${func}\(\)." ERR
+    trap "echo ${RED}==\> ERROR:${NORMAL}${BOLD} A failure occurred in ${func}\(\).${NORMAL}" ERR
     set -eE
     $func
 
