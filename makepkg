@@ -7,6 +7,35 @@ pkgdir=$(readlink -f -m ./pkg)
 srcdir=$(readlink -f -m ./src)
 outdir=$(readlink -f -m .)
 
+BOLD=""
+UNDERLINE=""
+STANDOUT=""
+NORMAL=""
+BLACK=""
+RED=""
+GREEN=""
+YELLOW=""
+BLUE=""
+MAGENTA=""
+CYAN=""
+WHITE=""
+if [[ -t 1  ]]; then
+    ncolors=$(tput colors)
+    if [[ -n "$ncolors" && $ncolors -ge 8 ]]; then
+        BOLD="$(tput bold)"
+        UNDERLINE="$(tput smul)"
+        STANDOUT="$(tput smso)"
+        NORMAL="$(tput sgr0)"
+        BLACK="$(tput setaf 0)"
+        RED="$(tput setaf 1)"
+        GREEN="$(tput setaf 2)"
+        YELLOW="$(tput setaf 3)"
+        BLUE="$(tput setaf 4)"
+        MAGENTA="$(tput setaf 5)"
+        CYAN="$(tput setaf 6)"
+        WHITE="$(tput setaf 7)"
+    fi
+fi
 
 function printhelp
 {
@@ -44,6 +73,7 @@ while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
             ;;
 
         C)
+            echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
             rm -rf $srcdir
             ;;
 
@@ -122,45 +152,59 @@ function extract ()
         case $1 in
             *.tar.bz2)
                 tar xjf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.gz)
                 tar xzf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.xz)
                 tar xf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.lz)
                 tar xf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.bz2)
                 tar jxvf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.rar)
                 unrar x $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.gz)
                 gunzip $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar)
                 tar xf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tbz2)
                 tar xjf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tgz)
                 tar xzf $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.zip)
                 unzip $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.jar)
                 unzip $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.7z)
                 7z x $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.xz)
                 xz -d $1
+                echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *)
                 ;;
@@ -172,6 +216,7 @@ function extract ()
 
 function clean()
 {
+    echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
     rm -f *.rpm
     rm -rf pkg
 }
@@ -245,9 +290,9 @@ function downloadsources()
             if [[ ! -e "$src_name" ]]; then
                 wget -nc $src_path -O $src_name
             fi
-            pushd $srcdir
+            pushd $srcdir &>/dev/null
             ln -sf "$download_location/$src_name" $src_name
-            popd
+            popd &>/dev/null
         fi
         if [[ "$vcs" == "git" ]]; then
             if [[ ! -e "$src_name" ]]; then
@@ -256,32 +301,32 @@ function downloadsources()
                 git --git-dir=$src_name fetch origin +refs/tags/*:refs/tags/* --prune
                 git --git-dir=$src_name fetch origin +refs/heads/*:refs/heads/* --prune
             fi
-            pushd $srcdir
+            pushd $srcdir &>/dev/null
             rm -rf $src_name
             git clone "$download_location/$src_name" $src_name
             if [[ -n "${src_fragment}" ]]; then
-                pushd $src_name
+                pushd $src_name &>/dev/null
                 git checkout $(echo ${src_fragment} | perl -pe "s/.*=//")
-                popd
+                popd &>/dev/null
             fi
-            popd
+            popd &>/dev/null
         fi
         if [[ "$vcs" == "svn" ]]; then
             if [[ ! -e "$src_name" ]]; then
                 svn checkout $src_path $src_name
             fi
-            pushd $srcdir
+            pushd $srcdir &>/dev/null
             cp -r "$download_location/$src_name" $src_name
-            popd
+            popd &>/dev/null
         fi
         if [[ "$vcs" == "none" ]]; then
-            pushd $srcdir
+            pushd $srcdir &>/dev/null
             if [ "${src_path:0:1}" = "/" ]; then
                 cp -v $src_path $src_name
             else
                 cp -v "$(dirname $pkgbuildfile)/$src_name" $src_name
             fi
-            popd
+            popd &>/dev/null
         fi
     done
 }
@@ -311,98 +356,60 @@ function verifygit()
     fi
 }
 
+function verify()
+{
+    list=$1
+    checksumprg=$2
+    verified=1
+    echo "${GREEN}==> ${NORMAL}${BOLD}Validating source files with $checksumprg...${NORMAL}" >&2
+    for (( i = 0; i < $numberofsources; i++ )); do
+        src_name=$(getSourceName "${source[i]}")
+        vcs=$(getSourceVCS "${source[i]}")
+        checksum=$(echo "$(eval "echo \${${list}[i]}")")
+        if [[ "${checksum}" == "SKIP" ]]; then
+            echo "    $src_name ... Skipped" >&2
+            continue
+        fi
+        if [[ "$vcs" == "git" ]]; then
+            verifygit $src_name ${checksum}
+        else
+            $checksumprg -c <(echo "${checksum}  $src_name") &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo "    $src_name ... FAILED" >&2
+                verified=0
+            else
+                echo "    $src_name ... Passed" >&2
+            fi
+        fi
+    done
+    if [[ $verified -eq 0 ]]; then
+        echo "${RED}==> ERROR: ${NORMAL}${BOLD}One or more files did not pass the validity check!${NORMAL}" >&2
+        exit 1
+    fi
+}
+
 function verifysources()
 {
     cd $srcdir
     numberofsources=${#source[@]}
-    for (( i = 0; i < $numberofsources; i++ )); do
-        src_name=$(getSourceName "${source[i]}")
-        vcs=$(getSourceVCS "${source[i]}")
-        if [[ -n "$md5sums" ]]; then
-            if [[ "${md5sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${md5sums[i]}
-            else
-                md5sum -c <(echo "${md5sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed md5 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-        if [[ -n "$sha256sums" ]]; then
-            if [[ "${sha256sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${sha256sums[i]}
-            else
-                sha256sum -c <(echo "${sha256sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha256 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-        if [[ -n "$sha1sums" ]]; then
-            if [[ "${sha1sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${sha1sums[i]}
-            else
-                sha1sum -c <(echo "${sha1sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha1 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-        if [[ -n "$sha224sums" ]]; then
-            if [[ "${sha224sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${sha224sums[i]}
-            else
-                sha224sum -c <(echo "${sha224sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha224 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-        if [[ -n "$sha384sums" ]]; then
-            if [[ "${sha384sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${sha384sums[i]}
-            else
-                sha384sum -c <(echo "${sha384sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha384 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-        if [[ -n "$sha512sums" ]]; then
-            if [[ "${sha512sums[i]}" == "SKIP" ]]; then
-                continue
-            fi
-            if [[ "$vcs" == "git" ]]; then
-                verifygit $src_name ${sha512sums[i]}
-            else
-                sha512sum -c <(echo "${sha512sums[i]}  $src_name") &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                    echo $src_name failed sha512 check >&2
-                    exit 1
-                fi
-            fi
-        fi
-    done
+    if [[ -n "$md5sums" ]]; then
+        verify md5sums md5sum
+    fi
+    if [[ -n "$sha256sums" ]]; then
+        verify sha256sums sha256sum
+    fi
+    if [[ -n "$sha1sums" ]]; then
+        verify sha1sums sha1sum
+    fi
+    if [[ -n "$sha224sums" ]]; then
+        verify sha224sums sha224sum
+    fi
+    if [[ -n "$sha384sums" ]]; then
+        verify sha512sums sha512sum
+    fi
+    if [[ -n "$sha512sums" ]]; then
+        verify sha512sums sha512sum
+    fi
 }
 
 install_cleanuplist=""
@@ -575,6 +582,23 @@ function rpmname()
         echo ${nameprefix}${name}-${fpmver}-${pkgrel}.${CARCH}.rpm
     done
 }
+
+function run_func()
+{
+    func=$1
+    echo "${GREEN}==> ${NORMAL}${BOLD}Starting ${func}()...${NORMAL}" >&2
+    restoreshopt=$(shopt -p)
+    restoreoshopt=$(shopt -o -p)
+    restoretrap=$(trap -p ERR)
+    trap "echo ${RED}==\> ERROR:${NORMAL}${BOLD} A failure occurred in ${func}\(\)." ERR
+    set -eE
+    $func
+
+    eval "$restoreshopt"
+    eval "$restoreoshopt"
+    eval "$restoretrap"
+
+}
 #setup the architecture flag
 if [[ -z ${CARCH} ]]; then
     CARCH=$(arch)
@@ -599,6 +623,7 @@ if [[ -n "$printmakedeps" ]]; then
 fi
 
 if [[ -n "$installbefore" ]]; then
+    echo "${GREEN}==> ${NORMAL}${BOLD}Checking buildtime dependencies...${NORMAL}" >&2
     yum_makedepends
 fi
 set -e
@@ -606,7 +631,7 @@ if [[ -z "$nodownload" ]]; then
     if [[ -n "$printrpmname" ]]; then
         downloadsources &> /dev/null
     else
-        echo downloading
+        echo "${GREEN}==> ${NORMAL}${BOLD}Retrieving sources...${NORMAL}" >&2
         downloadsources
     fi
 fi
@@ -615,7 +640,6 @@ if [[ -z "$noverify" ]]; then
     if [[ -n "$printrpmname" ]]; then
         verifysources &>/dev/null
     else
-        echo verifying sources
         verifysources
     fi
 fi
@@ -625,12 +649,13 @@ if [[ -z "$donotextractanything" ]]; then
     if [[ -n "$printrpmname" ]]; then
         extractsources &> /dev/null
     else
-        echo extracting
+        echo "${GREEN}==>${NORMAL}${BOLD} Extracting sources...${NORMAL}" >&2
         extractsources
     fi
 fi
 
 if [[ "$(type -t pkgver)" == "function" ]]; then
+
     pkgver=$(pkgver)
 fi
 
@@ -642,14 +667,14 @@ fi
 if [[ -z "$noprepare" ]]; then
     if [[ "$(type -t prepare)" == "function" ]]; then
         cd $srcdir
-        prepare
+        run_func prepare
     fi
 fi
 
 if [[ -z "$nobuild" ]]; then
     if [[ "$(type -t build)" == "function" ]]; then
         cd $srcdir
-        build
+        run_func build
     fi
 fi
 
@@ -659,10 +684,11 @@ if [[ -z "$noarchive" ]]; then
             cd $srcdir
             rm -rf $pkgdir
             mkdir -p $pkgdir
-            package
+            run_func package
+            echo "${GREEN}==> ${NORMAL}${BOLD}Creating RPM...${NORMAL}" >&2
             createrpm $pkgname
         else
-            echo missing package function.
+            echo "${RED}==> ERROR:${NORMAL}${BOLD}Missing package function.${NORMAL}" >&2
             exit 1
         fi
     else
@@ -672,10 +698,11 @@ if [[ -z "$noarchive" ]]; then
                 pkgdir=${orig_pkgdir}/${name}
                 rm -rf $pkgdir
                 mkdir -p $pkgdir
-                package_${name}
+                run_func package_${name}
+                echo "${GREEN}==> ${NORMAL}${BOLD}Creating RPM...${NORMAL}" >&2
                 createrpm ${name}
             else
-                echo missing package_${name} function.
+                echo "${RED}==> ERROR:${NORMAL}${BOLD}Missing package_${name} function.${NORMAL}" >&2
                 exit 1
             fi
 
