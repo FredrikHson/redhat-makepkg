@@ -279,7 +279,11 @@ function downloadsources()
     fi
 
     mkdir -p $srcdir
-
+    restoreshopt=$(shopt -p)
+    restoreoshopt=$(shopt -o -p)
+    restoretrap=$(trap -p ERR)
+    set +e
+    errorgettingsources=0
     for src in "${source[@]}"; do
         src_name=$(getSourceName "$src")
         src_path=$(getSourcePath "$src")
@@ -288,7 +292,12 @@ function downloadsources()
 
         if [[ "$vcs" == "http" ]]; then
             if [[ ! -e "$src_name" ]]; then
-                wget -nc $src_path -O $src_name
+                wget -nv -nc $src_path -O $src_name
+                if [[ $? -ne 0 ]]; then
+                    echo "${RED}==> ERROR: ${NORMAL}${BOLD}downloading $src failed${NORMAL}"
+                    rm -rf $src_name
+                    errorgettingsources=1
+                fi
             fi
             pushd $srcdir &>/dev/null
             ln -sf "$download_location/$src_name" $src_name
@@ -297,6 +306,10 @@ function downloadsources()
         if [[ "$vcs" == "git" ]]; then
             if [[ ! -e "$src_name" ]]; then
                 git clone --bare $src_path $src_name
+                if [[ $? -ne 0 ]]; then
+                    echo "${RED}==> ERROR: ${NORMAL}${BOLD}$src can not be found or not a git repo${NORMAL}"
+                    errorgettingsources=1
+                fi
             else
                 git --git-dir=$src_name fetch origin +refs/tags/*:refs/tags/* --prune
                 git --git-dir=$src_name fetch origin +refs/heads/*:refs/heads/* --prune
@@ -314,6 +327,10 @@ function downloadsources()
         if [[ "$vcs" == "svn" ]]; then
             if [[ ! -e "$src_name" ]]; then
                 svn checkout $src_path $src_name
+                if [[ $? -ne 0 ]]; then
+                    echo "${RED}==> ERROR: ${NORMAL}${BOLD}$src can not be found or not a svn repo${NORMAL}"
+                    errorgettingsources=1
+                fi
             fi
             pushd $srcdir &>/dev/null
             cp -r "$download_location/$src_name" $src_name
@@ -322,13 +339,30 @@ function downloadsources()
         if [[ "$vcs" == "none" ]]; then
             pushd $srcdir &>/dev/null
             if [ "${src_path:0:1}" = "/" ]; then
-                cp -v $src_path $src_name
+                if [[ -e "$src_path"  ]]; then
+                    cp -v $src_path $src_name
+                else
+                    echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
+                    errorgettingsources=1
+                fi
             else
-                cp -v "$(dirname $pkgbuildfile)/$src_name" $src_name
+                if [[ -e "$(dirname $pkgbuildfile)/$src_name"  ]]; then
+                    cp -v "$(dirname $pkgbuildfile)/$src_name" $src_name
+                else
+                    echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
+                    errorgettingsources=1
+                fi
             fi
             popd &>/dev/null
         fi
     done
+    eval "$restoreshopt"
+    eval "$restoreoshopt"
+    eval "$restoretrap"
+    if [[ $errorgettingsources -eq 1 ]]; then
+        echo "${RED}==> ERROR: ${NORMAL}${BOLD}Failed to get one or more source files${NORMAL}"
+        exit 1
+    fi
 }
 
 function extractsources()
