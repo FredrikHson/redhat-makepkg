@@ -223,7 +223,7 @@ function clean()
 
 function getSourcePath()
 {
-    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/\#.*$//g'
+    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+(.*:)/\1/g' | perl -pe 's/\#.*$//g'
 }
 
 
@@ -292,7 +292,7 @@ function downloadsources()
 
         if [[ "$vcs" == "http" ]]; then
             if [[ ! -e "$src_name" ]]; then
-                wget -nv -nc $src_path -O $src_name
+                wget -nv -nc "$src_path" -O $src_name
                 if [[ $? -ne 0 ]]; then
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}downloading $src failed${NORMAL}"
                     rm -rf $src_name
