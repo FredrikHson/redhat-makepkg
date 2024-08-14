@@ -8,32 +8,16 @@ srcdir=$(readlink -f -m ./src)
 outdir=$(readlink -f -m .)
 
 BOLD=""
-UNDERLINE=""
-STANDOUT=""
 NORMAL=""
-BLACK=""
 RED=""
 GREEN=""
-YELLOW=""
-BLUE=""
-MAGENTA=""
-CYAN=""
-WHITE=""
-if [[ -t 1  ]]; then
+if [[ -t 1 ]]; then
     ncolors=$(tput colors)
     if [[ -n "$ncolors" && $ncolors -ge 8 ]]; then
         BOLD="$(tput bold)"
-        UNDERLINE="$(tput smul)"
-        STANDOUT="$(tput smso)"
         NORMAL="$(tput sgr0)"
-        BLACK="$(tput setaf 0)"
         RED="$(tput setaf 1)"
         GREEN="$(tput setaf 2)"
-        YELLOW="$(tput setaf 3)"
-        BLUE="$(tput setaf 4)"
-        MAGENTA="$(tput setaf 5)"
-        CYAN="$(tput setaf 6)"
-        WHITE="$(tput setaf 7)"
     fi
 fi
 
@@ -57,84 +41,92 @@ function printhelp
     echo "-m = just print the makedepends list"
     echo "-n = output package name prefix"
     echo "-w = fpm workdir sets where fpm puts its temporary files /tmp as default"
+    echo "-i = install rpm after building"
+    echo "-f = force build even if already built"
 }
 download_location=$(pwd)
 pkgbuildfile="$(pwd)/PKGBUILD"
 
-while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
+while getopts "hcCUSapbdevD:O:P:rmn:w:if" c; do
     case "$c" in
-        h)
-            printhelp
-            exit 0
-            ;;
+    h)
+        printhelp
+        exit 0
+        ;;
 
-        c)
-            cleanupafter=1
-            ;;
+    c)
+        cleanupafter=1
+        ;;
 
-        C)
-            echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
-            rm -rf "$srcdir"
-            ;;
+    C)
+        echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
+        rm -rf "$srcdir"
+        ;;
 
-        S)
-            installbefore=1
-            ;;
-        U)
-            installcleanup=1
-            ;;
+    S)
+        installbefore=1
+        ;;
+    U)
+        installcleanup=1
+        ;;
 
-        a)
-            noarchive=1
-            ;;
+    a)
+        noarchive=1
+        ;;
 
-        p)
-            noprepare=1
-            ;;
+    p)
+        noprepare=1
+        ;;
 
-        b)
-            nobuild=1
-            ;;
-        d)
-            nodownload=1
-            ;;
-        e)
-            donotextractanything=1
-            ;;
+    b)
+        nobuild=1
+        ;;
+    d)
+        nodownload=1
+        ;;
+    e)
+        noextract=1
+        ;;
 
-        v)
-            noverify=1
-            ;;
-        r)
-            printrpmname=1
-            ;;
-        m)
-            printmakedeps=1
-            ;;
-        n)
-            nameprefix=$OPTARG
-            ;;
-        D)
-            download_location=$(readlink -f -m "$OPTARG")
-            ;;
+    v)
+        noverify=1
+        ;;
+    r)
+        printrpmname=1
+        ;;
+    m)
+        printmakedeps=1
+        ;;
+    n)
+        nameprefix=$OPTARG
+        ;;
+    D)
+        download_location=$(readlink -f -m "$OPTARG")
+        ;;
 
-        O)
-            outdir=$(readlink -f -m "$OPTARG")
-            ;;
-        w)
-            workdir=$(readlink -f -m "$OPTARG")
-            ;;
-        P)
-            pkgbuildfile=$(readlink -f -m "$OPTARG")
-            ;;
+    O)
+        outdir=$(readlink -f -m "$OPTARG")
+        ;;
+    w)
+        workdir=$(readlink -f -m "$OPTARG")
+        ;;
+    P)
+        pkgbuildfile=$(readlink -f -m "$OPTARG")
+        ;;
+    i)
+        install_after=1
+        ;;
+    f)
+        forcebuild=1
+        ;;
 
-        \?)
-            echo "invalid option $c"
-            ;;
-        :)
-            echo "Option -$OPTARG requires an argument." >&2
-            exit 1
-            ;;
+    \?)
+        echo "invalid option $c"
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
     esac
 done
 
@@ -143,71 +135,67 @@ if [[ ! -e $pkgbuildfile ]]; then
     exit 1
 fi
 
-function extract ()
+function extract()
 {
-    if [[ "${noextract[*]}" =~ "$1" ]];then
+    if [[ "${noextract[*]}" =~ "$1" ]]; then
         return
     fi
-    if [ -f "$1" ] ; then
+    if [ -f "$1" ]; then
         case $1 in
-            *.tar.bz2)
-                tar xjf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tar.gz)
-                tar xzf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tar.xz)
-                tar xf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tar.lz)
-                tar xf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.bz2)
-                tar jxvf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.rar)
-                unrar x "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.gz)
-                gunzip "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tar)
-                tar xf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tbz2)
-                tar xjf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tgz)
-                tar xzf "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.zip)
-                unzip "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.jar)
-                unzip "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.7z)
-                7z x "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *.tar.xz)
-                xz -d "$1"
-                echo "    ${BOLD}${NORMAL}$1"
-                ;;
-            *)
-                ;;
+        *.tar.bz2)
+            tar xjf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tar.gz)
+            tar xzf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tar.lz)
+            tar xf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.bz2)
+            tar jxvf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.rar)
+            unrar x "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.gz)
+            gunzip "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tar)
+            tar xf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tbz2)
+            tar xjf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tgz)
+            tar xzf "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.zip)
+            unzip "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.jar)
+            unzip "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.7z)
+            7z x "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *.tar.xz)
+            xz -d "$1"
+            echo "    ${BOLD}${NORMAL}$1"
+            ;;
+        *) ;;
+
         esac
     else
         echo "'$1' is not a valid file"
@@ -217,7 +205,7 @@ function extract ()
 function clean()
 {
     echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
-    rm -f *.rpm
+    rm -f -- *.rpm
     rm -rf pkg
 }
 
@@ -225,7 +213,6 @@ function getSourcePath()
 {
     echo "$1" | perl -pe 's/.*:://g' | perl -pe 's/.*?\+(.*:)/\1/g' | perl -pe 's/\#.*$//g'
 }
-
 
 function getSourceName()
 {
@@ -241,8 +228,8 @@ function getSourceFragment()
     echo "$1" | grep '#' | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
 }
 
-function getSourceVCS() # none,http,git,svn
-{
+function getSourceVCS()
+{ # none,http,git,svn
     if [[ $(echo "$1" | grep 'git+https*://') ]]; then
         echo git
         return
@@ -339,14 +326,14 @@ function downloadsources()
         if [[ "$vcs" == "none" ]]; then
             pushd "$srcdir" &>/dev/null
             if [ "${src_path:0:1}" = "/" ]; then
-                if [[ -e "$src_path"  ]]; then
+                if [[ -e "$src_path" ]]; then
                     cp -v "$src_path" "$src_name"
                 else
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
                     errorgettingsources=1
                 fi
             else
-                if [[ -e "$(dirname "$pkgbuildfile")/$src_name"  ]]; then
+                if [[ -e "$(dirname "$pkgbuildfile")/$src_name" ]]; then
                     cp -v "$(dirname "$pkgbuildfile")/$src_name" "$src_name"
                 else
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
@@ -396,7 +383,7 @@ function verify()
     checksumprg=$2
     verified=1
     echo "${GREEN}==> ${NORMAL}${BOLD}Validating source files with $checksumprg...${NORMAL}" >&2
-    for (( i = 0; i < $numberofsources; i++ )); do
+    for ((i = 0; i < $numberofsources; i++)); do
         src_name=$(getSourceName "${source[i]}")
         vcs=$(getSourceVCS "${source[i]}")
         checksum=$(echo "$(eval "echo \${${list}[i]}")")
@@ -455,7 +442,7 @@ function yum_makedepends()
         exists=$(echo "$installedlist" | grep "^$dep$")
         if [[ -z "$exists" ]]; then
             echo "$dep" needs to be installed
-            install_cleanuplist=$(echo "$install_cleanuplist" "$dep")
+            install_cleanuplist="$install_cleanuplist $dep"
         fi
     done
     if [[ -n "$install_cleanuplist" ]]; then
@@ -532,37 +519,37 @@ function createrpm()
         grep -q post_install "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${post_installfile}"
-            echo post_install >> "${post_installfile}"
+            echo post_install >>"${post_installfile}"
             fpmflags=$(echo "$fpmflags --after-install ${post_installfile}")
         fi
         grep -q pre_install "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${pre_installfile}"
-            echo pre_install >> "${pre_installfile}"
+            echo pre_install >>"${pre_installfile}"
             fpmflags=$(echo "$fpmflags --before-install ${pre_installfile}")
         fi
         grep -q post_remove "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${post_removefile}"
-            echo post_remove >> "${post_removefile}"
+            echo post_remove >>"${post_removefile}"
             fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
         fi
         grep -q pre_remove "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${pre_removefile}"
-            echo pre_remove >> "${pre_removefile}"
+            echo pre_remove >>"${pre_removefile}"
             fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
         fi
         grep -q post_upgrade "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${post_upgradefile}"
-            echo post_upgrade >> "${post_upgradefile}"
+            echo post_upgrade >>"${post_upgradefile}"
             fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
         fi
         grep -q pre_upgrade "${installfile}"
         if [[ $? -eq 0 ]]; then
             cp "${installfile}" "${pre_upgradefile}"
-            echo pre_upgrade >> "${pre_upgradefile}"
+            echo pre_upgrade >>"${pre_upgradefile}"
             fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
         fi
         set -e
@@ -583,7 +570,7 @@ function createrpm()
     if [[ ! -d "${outdir}" ]]; then
         mkdir -p "${outdir}"
     fi
-    mv -v *.rpm "${outdir}"/
+    mv -v -- *.rpm "${outdir}"/
 }
 
 function concat_sources()
@@ -615,7 +602,7 @@ function rpmname()
 {
     fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
     for name in ${pkgname[@]}; do
-        echo "${nameprefix}""${name}"-"${fpmver}"-"${pkgrel}"."${CARCH}".rpm
+        echo "./${nameprefix}""${name}"-"${fpmver}"-"${pkgrel}"."${CARCH}".rpm
     done
 }
 
@@ -635,6 +622,15 @@ function run_func()
     eval "$restoretrap"
 
 }
+
+function installpkg()
+{
+    pushd "$outdir" &>/dev/null
+    $INSTALLER $(rpmname)
+    popd &>/dev/null
+
+}
+
 #setup the architecture flag
 if [[ -z ${CARCH} ]]; then
     CARCH=$(arch)
@@ -642,13 +638,24 @@ fi
 
 . "$pkgbuildfile"
 
+if [[ -z "$forcebuild" ]]; then
+    for checkrpm in $(rpmname); do
+        if [[ -f "$checkrpm" ]]; then
+            echo $checkrpm already built use -f to force
+            if [[ -n "$install_after" ]]; then
+                installpkg
+            fi
+            exit 1
+        fi
+    done
+fi
+
 concat_sources
 if [[ "$(type -t pkgver)" != "function" ]]; then
     if [[ -n "$printrpmname" ]]; then
         rpmname
         exit 0
     fi
-
 fi
 
 if [[ -n "$printmakedeps" ]]; then
@@ -665,7 +672,7 @@ fi
 set -e
 if [[ -z "$nodownload" ]]; then
     if [[ -n "$printrpmname" ]]; then
-        downloadsources &> /dev/null
+        downloadsources &>/dev/null
     else
         echo "${GREEN}==> ${NORMAL}${BOLD}Retrieving sources...${NORMAL}" >&2
         downloadsources
@@ -683,7 +690,7 @@ set -e
 
 if [[ -z "$donotextractanything" ]]; then
     if [[ -n "$printrpmname" ]]; then
-        extractsources &> /dev/null
+        extractsources &>/dev/null
     else
         echo "${GREEN}==>${NORMAL}${BOLD} Extracting sources...${NORMAL}" >&2
         extractsources
@@ -754,4 +761,8 @@ fi
 
 if [[ -n "$installcleanup" ]]; then
     yum_cleanup
+fi
+
+if [[ -n "$install_after" ]]; then
+    installpkg
 fi
