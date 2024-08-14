@@ -447,7 +447,7 @@ function yum_makedepends()
     done
     if [[ -n "$install_cleanuplist" ]]; then
         set -e
-        $INSTALLER "$install_cleanuplist"
+        $INSTALLER $install_cleanuplist
         set +e
     fi
 }
@@ -455,7 +455,7 @@ function yum_makedepends()
 function yum_cleanup()
 {
     if [[ -n "$install_cleanuplist" ]]; then
-        $UNINSTALLER "$install_cleanuplist"
+        $UNINSTALLER $install_cleanuplist
     fi
 }
 
