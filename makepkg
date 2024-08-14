@@ -74,7 +74,7 @@ while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
 
         C)
             echo "${GREEN}==>${NORMAL}${BOLD} Cleaning...${NORMAL}" >&2
-            rm -rf $srcdir
+            rm -rf "$srcdir"
             ;;
 
         S)
@@ -115,17 +115,17 @@ while getopts "hcCUSapbdevD:O:P:rmn:w:" c;do
             nameprefix=$OPTARG
             ;;
         D)
-            download_location=$(readlink -f -m $OPTARG)
+            download_location=$(readlink -f -m "$OPTARG")
             ;;
 
         O)
-            outdir=$(readlink -f -m $OPTARG)
+            outdir=$(readlink -f -m "$OPTARG")
             ;;
         w)
-            workdir=$(readlink -f -m $OPTARG)
+            workdir=$(readlink -f -m "$OPTARG")
             ;;
         P)
-            pkgbuildfile=$(readlink -f -m $OPTARG)
+            pkgbuildfile=$(readlink -f -m "$OPTARG")
             ;;
 
         \?)
@@ -148,62 +148,62 @@ function extract ()
     if [[ "${noextract[*]}" =~ "$1" ]];then
         return
     fi
-    if [ -f $1 ] ; then
+    if [ -f "$1" ] ; then
         case $1 in
             *.tar.bz2)
-                tar xjf $1
+                tar xjf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.gz)
-                tar xzf $1
+                tar xzf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.xz)
-                tar xf $1
+                tar xf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.lz)
-                tar xf $1
+                tar xf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.bz2)
-                tar jxvf $1
+                tar jxvf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.rar)
-                unrar x $1
+                unrar x "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.gz)
-                gunzip $1
+                gunzip "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar)
-                tar xf $1
+                tar xf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tbz2)
-                tar xjf $1
+                tar xjf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tgz)
-                tar xzf $1
+                tar xzf "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.zip)
-                unzip $1
+                unzip "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.jar)
-                unzip $1
+                unzip "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.7z)
-                7z x $1
+                7z x "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *.tar.xz)
-                xz -d $1
+                xz -d "$1"
                 echo "    ${BOLD}${NORMAL}$1"
                 ;;
             *)
@@ -223,47 +223,47 @@ function clean()
 
 function getSourcePath()
 {
-    echo $1 | perl -pe 's/.*:://g' | perl -pe 's/.*?\+(.*:)/\1/g' | perl -pe 's/\#.*$//g'
+    echo "$1" | perl -pe 's/.*:://g' | perl -pe 's/.*?\+(.*:)/\1/g' | perl -pe 's/\#.*$//g'
 }
 
 
 function getSourceName()
 {
-    if [[ $(echo $1 | grep ::) ]]; then
-        echo $1 | perl -pe 's/::.*//g'
+    if [[ $(echo "$1" | grep ::) ]]; then
+        echo "$1" | perl -pe 's/::.*//g'
     else
-        basename $1 | perl -pe 's/\#.*$//g' | perl -pe 's/\.git$//'
+        basename "$1" | perl -pe 's/\#.*$//g' | perl -pe 's/\.git$//'
     fi
 }
 
 function getSourceFragment()
 {
-    echo $1 | grep '#' | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
+    echo "$1" | grep '#' | perl -pe 's/.*:://g' | perl -pe 's/.*?\+//g' | perl -pe 's/.*\#//g'
 }
 
 function getSourceVCS() # none,http,git,svn
 {
-    if [[ $(echo $1 | grep 'git+https*://') ]]; then
+    if [[ $(echo "$1" | grep 'git+https*://') ]]; then
         echo git
         return
     fi
-    if [[ $(echo $1 | grep 'git+file*://') ]]; then
+    if [[ $(echo "$1" | grep 'git+file*://') ]]; then
         echo git
         return
     fi
-    if [[ $(echo $1 | grep 'git://') ]]; then
+    if [[ $(echo "$1" | grep 'git://') ]]; then
         echo git
         return
     fi
-    if [[ $(echo $1 | grep 'svn+https*://') ]]; then
+    if [[ $(echo "$1" | grep 'svn+https*://') ]]; then
         echo svn
         return
     fi
-    if [[ $(echo $1 | grep 'https*://') ]]; then
+    if [[ $(echo "$1" | grep 'https*://') ]]; then
         echo http
         return
     fi
-    if [[ $(echo $1 | grep 'ftps*://') ]]; then
+    if [[ $(echo "$1" | grep 'ftps*://') ]]; then
         echo http
         return
     fi
@@ -274,11 +274,11 @@ function getSourceVCS() # none,http,git,svn
 function downloadsources()
 {
     if [[ -n "$download_location" ]]; then
-        mkdir -p $download_location
-        cd $download_location
+        mkdir -p "$download_location"
+        cd "$download_location"
     fi
 
-    mkdir -p $srcdir
+    mkdir -p "$srcdir"
     restoreshopt=$(shopt -p)
     restoreoshopt=$(shopt -o -p)
     restoretrap=$(trap -p ERR)
@@ -292,62 +292,62 @@ function downloadsources()
 
         if [[ "$vcs" == "http" ]]; then
             if [[ ! -e "$src_name" ]]; then
-                wget -nv -nc "$src_path" -O $src_name
+                wget -nv -nc "$src_path" -O "$src_name"
                 if [[ $? -ne 0 ]]; then
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}downloading $src failed${NORMAL}"
-                    rm -rf $src_name
+                    rm -rf "$src_name"
                     errorgettingsources=1
                 fi
             fi
-            pushd $srcdir &>/dev/null
-            ln -sf "$download_location/$src_name" $src_name
+            pushd "$srcdir" &>/dev/null
+            ln -sf "$download_location/$src_name" "$src_name"
             popd &>/dev/null
         fi
         if [[ "$vcs" == "git" ]]; then
             if [[ ! -e "$src_name" ]]; then
-                git clone --bare $src_path $src_name
+                git clone --bare "$src_path" "$src_name"
                 if [[ $? -ne 0 ]]; then
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}$src can not be found or not a git repo${NORMAL}"
                     errorgettingsources=1
                 fi
             else
-                git --git-dir=$src_name fetch origin +refs/tags/*:refs/tags/* --prune
-                git --git-dir=$src_name fetch origin +refs/heads/*:refs/heads/* --prune
+                git --git-dir="$src_name" fetch origin +refs/tags/*:refs/tags/* --prune
+                git --git-dir="$src_name" fetch origin +refs/heads/*:refs/heads/* --prune
             fi
-            pushd $srcdir &>/dev/null
-            rm -rf $src_name
-            git clone "$download_location/$src_name" $src_name
+            pushd "$srcdir" &>/dev/null
+            rm -rf "$src_name"
+            git clone "$download_location/$src_name" "$src_name"
             if [[ -n "${src_fragment}" ]]; then
-                pushd $src_name &>/dev/null
-                git checkout $(echo ${src_fragment} | perl -pe "s/.*=//")
+                pushd "$src_name" &>/dev/null
+                git checkout $(echo "${src_fragment}" | perl -pe "s/.*=//")
                 popd &>/dev/null
             fi
             popd &>/dev/null
         fi
         if [[ "$vcs" == "svn" ]]; then
             if [[ ! -e "$src_name" ]]; then
-                svn checkout $src_path $src_name
+                svn checkout "$src_path" "$src_name"
                 if [[ $? -ne 0 ]]; then
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}$src can not be found or not a svn repo${NORMAL}"
                     errorgettingsources=1
                 fi
             fi
-            pushd $srcdir &>/dev/null
-            cp -r "$download_location/$src_name" $src_name
+            pushd "$srcdir" &>/dev/null
+            cp -r "$download_location/$src_name" "$src_name"
             popd &>/dev/null
         fi
         if [[ "$vcs" == "none" ]]; then
-            pushd $srcdir &>/dev/null
+            pushd "$srcdir" &>/dev/null
             if [ "${src_path:0:1}" = "/" ]; then
                 if [[ -e "$src_path"  ]]; then
-                    cp -v $src_path $src_name
+                    cp -v "$src_path" "$src_name"
                 else
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
                     errorgettingsources=1
                 fi
             else
-                if [[ -e "$(dirname $pkgbuildfile)/$src_name"  ]]; then
-                    cp -v "$(dirname $pkgbuildfile)/$src_name" $src_name
+                if [[ -e "$(dirname "$pkgbuildfile")/$src_name"  ]]; then
+                    cp -v "$(dirname "$pkgbuildfile")/$src_name" "$src_name"
                 else
                     echo "${RED}==> ERROR: ${NORMAL}${BOLD}Local file $src can not be found${NORMAL}"
                     errorgettingsources=1
@@ -367,14 +367,14 @@ function downloadsources()
 
 function extractsources()
 {
-    mkdir -p $srcdir
-    cd $srcdir
+    mkdir -p "$srcdir"
+    cd "$srcdir"
 
     for src in "${source[@]}"; do
         src_name=$(getSourceName "$src")
         vcs=$(getSourceVCS "$src")
         if [[ "$vcs" != "git" && "$vcs" != "svn" ]]; then
-            extract $src_name
+            extract "$src_name"
         fi
     done
 }
@@ -383,9 +383,9 @@ function verifygit()
 {
     local src_name=$1
     local sha=$2
-    local actualsha=$(git --git-dir=$src_name/.git rev-parse HEAD)
+    local actualsha=$(git --git-dir="$src_name"/.git rev-parse HEAD)
     if [[ "$actualsha" != "$sha" ]]; then
-        echo $src_name tag/branch did not match $sha >&2
+        echo "$src_name" tag/branch did not match "$sha" >&2
         exit 1
     fi
 }
@@ -405,7 +405,7 @@ function verify()
             continue
         fi
         if [[ "$vcs" == "git" ]]; then
-            verifygit $src_name ${checksum}
+            verifygit "$src_name" "${checksum}"
         else
             $checksumprg -c <(echo "${checksum}  $src_name") &>/dev/null
             if [[ $? -ne 0 ]]; then
@@ -424,7 +424,7 @@ function verify()
 
 function verifysources()
 {
-    cd $srcdir
+    cd "$srcdir"
     numberofsources=${#source[@]}
     if [[ -n "$md5sums" ]]; then
         verify md5sums md5sum
@@ -454,13 +454,13 @@ function yum_makedepends()
     for dep in ${makedepends[@]}; do
         exists=$(echo "$installedlist" | grep "^$dep$")
         if [[ -z "$exists" ]]; then
-            echo $dep needs to be installed
-            install_cleanuplist=$(echo $install_cleanuplist $dep)
+            echo "$dep" needs to be installed
+            install_cleanuplist=$(echo "$install_cleanuplist" "$dep")
         fi
     done
     if [[ -n "$install_cleanuplist" ]]; then
         set -e
-        $INSTALLER $install_cleanuplist
+        $INSTALLER "$install_cleanuplist"
         set +e
     fi
 }
@@ -468,7 +468,7 @@ function yum_makedepends()
 function yum_cleanup()
 {
     if [[ -n "$install_cleanuplist" ]]; then
-        $UNINSTALLER $install_cleanuplist
+        $UNINSTALLER "$install_cleanuplist"
     fi
 }
 
@@ -481,14 +481,14 @@ function createrpm()
         if [[ -e "$HOME/.rvm/scripts/rvm" ]]; then
             echo using rvm to get ruby 2.3
             #setup ruby for fpm
-            . $HOME/.rvm/scripts/rvm
+            . "$HOME"/.rvm/scripts/rvm
             rvm 2.3
         else
             echo could not get a new enough ruby version to run fpm on update ruby or install rvm.
             exit 1
         fi
     fi
-    cd ${pkgdir}
+    cd "${pkgdir}"
     echo ${depends[@]}
     fpmflags=""
     for dep in ${depends[@]}; do
@@ -527,63 +527,63 @@ function createrpm()
     pre_upgradefile=$(mktemp -u)
     if [[ -n "$install" ]]; then
         set +e
-        installfile=$(dirname $pkgbuildfile)/$install
+        installfile=$(dirname "$pkgbuildfile")/$install
         echo "install script ${installfile}"
-        grep -q post_install ${installfile}
+        grep -q post_install "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${post_installfile}
-            echo post_install >> ${post_installfile}
+            cp "${installfile}" "${post_installfile}"
+            echo post_install >> "${post_installfile}"
             fpmflags=$(echo "$fpmflags --after-install ${post_installfile}")
         fi
-        grep -q pre_install ${installfile}
+        grep -q pre_install "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${pre_installfile}
-            echo pre_install >> ${pre_installfile}
+            cp "${installfile}" "${pre_installfile}"
+            echo pre_install >> "${pre_installfile}"
             fpmflags=$(echo "$fpmflags --before-install ${pre_installfile}")
         fi
-        grep -q post_remove ${installfile}
+        grep -q post_remove "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${post_removefile}
-            echo post_remove >> ${post_removefile}
+            cp "${installfile}" "${post_removefile}"
+            echo post_remove >> "${post_removefile}"
             fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
         fi
-        grep -q pre_remove ${installfile}
+        grep -q pre_remove "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${pre_removefile}
-            echo pre_remove >> ${pre_removefile}
+            cp "${installfile}" "${pre_removefile}"
+            echo pre_remove >> "${pre_removefile}"
             fpmflags=$(echo "$fpmflags --after-remove ${post_removefile}")
         fi
-        grep -q post_upgrade ${installfile}
+        grep -q post_upgrade "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${post_upgradefile}
-            echo post_upgrade >> ${post_upgradefile}
+            cp "${installfile}" "${post_upgradefile}"
+            echo post_upgrade >> "${post_upgradefile}"
             fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
         fi
-        grep -q pre_upgrade ${installfile}
+        grep -q pre_upgrade "${installfile}"
         if [[ $? -eq 0 ]]; then
-            cp ${installfile} ${pre_upgradefile}
-            echo pre_upgrade >> ${pre_upgradefile}
+            cp "${installfile}" "${pre_upgradefile}"
+            echo pre_upgrade >> "${pre_upgradefile}"
             fpmflags=$(echo "$fpmflags --after-upgrade ${post_upgradefile}")
         fi
         set -e
     fi
     fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
-    eval "fpm -s dir -t rpm -n ${nameprefix}$name -v "${fpmver}" \
+    eval "fpm -s dir -t rpm -n ${nameprefix}$name -v ""${fpmver}"" \
         --iteration $pkgrel \
         --provides ${nameprefix}$name \
         --architecture ${CARCH} \
         ${fpmflags} \
         *"
-    rm -f ${post_installfile}
-    rm -f ${pre_installfile}
-    rm -f ${post_removefile}
-    rm -f ${pre_removefile}
-    rm -f ${post_upgradefile}
-    rm -f ${pre_upgradefile}
+    rm -f "${post_installfile}"
+    rm -f "${pre_installfile}"
+    rm -f "${post_removefile}"
+    rm -f "${pre_removefile}"
+    rm -f "${post_upgradefile}"
+    rm -f "${pre_upgradefile}"
     if [[ ! -d "${outdir}" ]]; then
-        mkdir -p ${outdir}
+        mkdir -p "${outdir}"
     fi
-    mv -v *.rpm ${outdir}/
+    mv -v *.rpm "${outdir}"/
 }
 
 function concat_sources()
@@ -615,7 +615,7 @@ function rpmname()
 {
     fpmver=$(echo "${pkgver}" | perl -pe 's/-/_/g')
     for name in ${pkgname[@]}; do
-        echo ${nameprefix}${name}-${fpmver}-${pkgrel}.${CARCH}.rpm
+        echo "${nameprefix}""${name}"-"${fpmver}"-"${pkgrel}"."${CARCH}".rpm
     done
 }
 
@@ -640,7 +640,7 @@ if [[ -z ${CARCH} ]]; then
     CARCH=$(arch)
 fi
 
-. $pkgbuildfile
+. "$pkgbuildfile"
 
 concat_sources
 if [[ "$(type -t pkgver)" != "function" ]]; then
@@ -653,7 +653,7 @@ fi
 
 if [[ -n "$printmakedeps" ]]; then
     for i in ${makedepends[@]}; do
-        echo $i
+        echo "$i"
     done
     exit 0
 fi
@@ -702,14 +702,14 @@ fi
 
 if [[ -z "$noprepare" ]]; then
     if [[ "$(type -t prepare)" == "function" ]]; then
-        cd $srcdir
+        cd "$srcdir"
         run_func prepare
     fi
 fi
 
 if [[ -z "$nobuild" ]]; then
     if [[ "$(type -t build)" == "function" ]]; then
-        cd $srcdir
+        cd "$srcdir"
         run_func build
     fi
 fi
@@ -717,12 +717,12 @@ fi
 if [[ -z "$noarchive" ]]; then
     if [[ ${#pkgname[@]} -eq 1 ]]; then
         if [[ "$(type -t package)" == "function" ]]; then
-            cd $srcdir
-            rm -rf $pkgdir
-            mkdir -p $pkgdir
+            cd "$srcdir"
+            rm -rf "$pkgdir"
+            mkdir -p "$pkgdir"
             run_func package
             echo "${GREEN}==> ${NORMAL}${BOLD}Creating RPM...${NORMAL}" >&2
-            createrpm $pkgname
+            createrpm "$pkgname"
         else
             echo "${RED}==> ERROR:${NORMAL}${BOLD}Missing package function.${NORMAL}" >&2
             exit 1
@@ -730,13 +730,13 @@ if [[ -z "$noarchive" ]]; then
     else
         orig_pkgdir=$pkgdir
         for name in ${pkgname[@]}; do
-            if [[ "$(type -t package_${name})" == "function" ]]; then
+            if [[ "$(type -t package_"${name}")" == "function" ]]; then
                 pkgdir=${orig_pkgdir}/${name}
-                rm -rf $pkgdir
-                mkdir -p $pkgdir
-                run_func package_${name}
+                rm -rf "$pkgdir"
+                mkdir -p "$pkgdir"
+                run_func package_"${name}"
                 echo "${GREEN}==> ${NORMAL}${BOLD}Creating RPM...${NORMAL}" >&2
-                createrpm ${name}
+                createrpm "${name}"
             else
                 echo "${RED}==> ERROR:${NORMAL}${BOLD}Missing package_${name} function.${NORMAL}" >&2
                 exit 1
@@ -748,8 +748,8 @@ fi
 set +e
 
 if [[ -n "$cleanupafter" ]]; then
-    rm -rf $srcdir
-    rm -rf $pkgdir
+    rm -rf "$srcdir"
+    rm -rf "$pkgdir"
 fi
 
 if [[ -n "$installcleanup" ]]; then
