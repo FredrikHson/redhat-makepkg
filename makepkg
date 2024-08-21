@@ -641,11 +641,13 @@ fi
 if [[ -z "$forcebuild" ]]; then
     for checkrpm in $(rpmname); do
         if [[ -f "$checkrpm" ]]; then
-            echo $checkrpm already built use -f to force
             if [[ -n "$install_after" ]]; then
                 installpkg
+                exit 0
+            else
+                echo $checkrpm already built use -f to force
+                exit 1
             fi
-            exit 1
         fi
     done
 fi
