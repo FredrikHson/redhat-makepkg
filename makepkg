@@ -191,7 +191,7 @@ function extract()
             echo "    ${BOLD}${NORMAL}$1"
             ;;
         *.tar.xz)
-            xz -d "$1"
+            tar xf "$1"
             echo "    ${BOLD}${NORMAL}$1"
             ;;
         *) ;;
