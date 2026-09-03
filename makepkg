@@ -477,7 +477,7 @@ function createrpm()
     fi
     cd "${pkgdir}"
     echo ${depends[@]}
-    fpmflags=""
+    fpmflags="--rpm-rpmbuild-define \"_build_id_links none\"" # remove /usr/lib/.build-id files
     for dep in ${depends[@]}; do
         fpmflags=$(echo "$fpmflags --depends \"$dep\"")
     done
